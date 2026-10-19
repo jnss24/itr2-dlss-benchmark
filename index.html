@@ -34,7 +34,7 @@ button{cursor:pointer}button.on{background:#f5b335;color:#111;border-color:#f5b3
 <h2>Compare</h2>
 <div class="bar">Left of the line: <select id="sl"></select> Right of the line: <select id="sr"></select>
 <button id="sw" title="X">Swap</button>
-<button data-m="f">Footage</button><button data-m="h" class="on">Shimmer map</button><button data-m="s">Screenshot</button>
+<button data-m="f">Footage</button><button data-m="h" class="on">Shimmer map</button><button data-m="s">Screenshot</button><button id="au" class="on" title="A: switch between the shimmer map and the footage after every sweep of the line">Auto</button>
 <button id="pp">Pause</button><button data-s="1" class="on">Real speed</button><button data-s="0.5">1/2</button>
 <button data-s="0.25">1/4</button><button data-s="0.1">1/10</button><button id="zm">Zoom 2x</button><span id="fr"></span></div>
 <div id="sum"></div>
@@ -42,7 +42,7 @@ button{cursor:pointer}button.on{background:#f5b335;color:#111;border-color:#f5b3
 <div class="tag" id="tl" style="left:8px"></div><div class="tag" id="tr" style="right:8px"></div></div>
 <div id="none" style="display:none">No footage for this pair (the burst failed or was turned off).</div>
 <p>The line sweeps by itself; move the mouse over the picture to hold it there. Space: pause &middot; Left/Right: one frame
-&middot; Z: zoom 2x &middot; X: swap sides &middot; 1/2/3: footage / shimmer map / screenshot. Shimmer map: bright = the pixel
+&middot; Z: zoom 2x &middot; X: swap sides &middot; 1/2/3: footage / shimmer map / screenshot &middot; A: auto (shimmer map and footage take turns after every sweep). Shimmer map: bright = the pixel
 changes from frame to frame while the view is still (flicker, crawling edges). Footage and maps are lined up with the first
 burst; screenshots are shown as taken.</p>
 </div><script>
@@ -77,7 +77,7 @@ var P=[
 ];
 function $(i){return document.getElementById(i);}
 var tb=document.querySelector('#t tbody'),sl=$('sl'),sr=$('sr'),wp=$('wp'),lr=$('lr'),ll=$('ll'),ln=$('ln'),tl=$('tl'),tr=$('tr');
-var mode='h',k=0,speed=1,zoom=1,run=true,last=0,acc=0,wt=0,hold=-1,scale=1,shots={};
+var mode='h',k=0,speed=1,zoom=1,run=true,last=0,acc=0,wt=0,hold=-1,scale=1,shots={},auto=true,acyc=0;
 var R=B>=0?P[B]:null;
 function f(v,d){return v.toFixed(d);}
 function delta(v,ref,d,unit){if(ref==null)return '';var x=v-ref;var c=Math.abs(x)<Math.pow(10,-d)/2?'':(x>0?'up':'dn');return '<span class="'+c+'">'+(x>0?'+':'')+f(x,d)+(unit||'')+'</span>';}
@@ -123,23 +123,26 @@ function summary(){var a=L(),b=Rt();
  document.querySelectorAll('#t tbody tr').forEach(function(r){r.classList.toggle('sel',+r.dataset.i==+sl.value||+r.dataset.i==+sr.value);});}
 function changed(){summary();if(mode=='s'){var n=0;[L(),Rt()].forEach(function(p){loadShot(p,function(){if(++n==2)layout();});});}else layout();}
 function fps(){var a=L(),b=Rt(),v=(a.bf+b.bf)/2;return v>1?v:72;}
-function tick(t){if(last&&run){var dt=t-last;acc+=dt*speed;wt+=dt/1000;var d=1000/fps();while(acc>=d){acc-=d;k++;}draw();}last=t;requestAnimationFrame(tick);}
+function tick(t){if(last&&run){var dt=t-last;acc+=dt*speed;wt+=dt/1000;if(auto){var c=Math.floor(wt/4.5);if(c!=acyc){acyc=c;if(hold<0&&mode!='s')setMode(mode=='h'?'f':'h',true);}}var d=1000/fps();while(acc>=d){acc-=d;k++;}draw();}last=t;requestAnimationFrame(tick);}
 wp.onmousemove=function(e){var r=wp.getBoundingClientRect();hold=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));draw();};
 wp.onmouseleave=function(){hold=-1;};
 sl.onchange=changed;sr.onchange=changed;
 $('sw').onclick=function(){var x=sl.value;sl.value=sr.value;sr.value=x;changed();};
-function setMode(m){mode=m;document.querySelectorAll('button[data-m]').forEach(function(x){x.classList.toggle('on',x.dataset.m==m);});changed();}
+function setAuto(on){auto=on;acyc=Math.floor(wt/4.5);$('au').classList.toggle('on',on);}
+function setMode(m,fromAuto){if(!fromAuto&&auto)setAuto(false);mode=m;document.querySelectorAll('button[data-m]').forEach(function(x){x.classList.toggle('on',x.dataset.m==m);});changed();}
 document.querySelectorAll('button[data-m]').forEach(function(b){b.onclick=function(){setMode(b.dataset.m);};});
 document.querySelectorAll('button[data-s]').forEach(function(b){b.onclick=function(){speed=+b.dataset.s;
  document.querySelectorAll('button[data-s]').forEach(function(x){x.classList.toggle('on',x===b);});};});
 var pp=$('pp'),zm=$('zm');
 pp.onclick=function(){run=!run;pp.textContent=run?'Pause':'Play';};
 zm.onclick=function(){zoom=zoom>1?1:2;zm.classList.toggle('on',zoom>1);layout();};
+$('au').onclick=function(){setAuto(!auto);if(auto&&mode=='s')setMode('h',true);};
 window.onkeydown=function(e){if(e.target.tagName=='SELECT')return;
  if(e.key==' '){e.preventDefault();pp.onclick();}
  else if(e.key=='ArrowRight'){run=false;pp.textContent='Play';k++;draw();}
  else if(e.key=='ArrowLeft'){run=false;pp.textContent='Play';k=Math.max(0,k-1);draw();}
  else if(e.key=='z'||e.key=='Z')zm.onclick();else if(e.key=='x'||e.key=='X')$('sw').onclick();
+ else if(e.key=='a'||e.key=='A')$('au').onclick();
  else if(e.key=='1')setMode('f');else if(e.key=='2')setMode('h');else if(e.key=='3')setMode('s');};
 window.onresize=layout;changed();requestAnimationFrame(tick);
 </script></body></html>

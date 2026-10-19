@@ -1,0 +1,145 @@
+<!doctype html><html><head><meta charset="utf-8"><title>itr2_20261018_222100 benchmark</title><style>
+html,body{margin:0;background:#111;color:#ddd;font:14px system-ui,sans-serif}
+.wrap{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:18px;margin:0}h2{font-size:16px;margin:8px 0 0}
+p{margin:0;color:#aaa;max-width:120ch}a{color:#f5b335}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:4px 10px;border-bottom:1px solid #2a2a2a;text-align:right;white-space:nowrap}
+th{color:#bbb;font-weight:600;cursor:pointer;position:sticky;top:0;background:#161616}
+td:first-child,th:first-child,td:nth-child(2),th:nth-child(2){text-align:left}
+tr.taa td{color:#9fd3ff}tr.sel td{background:#2b2410}tr:hover td{background:#1d1d1d}
+.up{color:#ff8a7a}.dn{color:#8be38b}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:4px;padding:5px 10px;font:inherit}
+button{cursor:pointer}button.on{background:#f5b335;color:#111;border-color:#f5b335}
+.wipe{position:relative;overflow:hidden;border:1px solid #333;cursor:ew-resize;background:#000}
+.wipe .layer{position:absolute;inset:0;background-repeat:no-repeat}
+.wipe .line{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:#f5b335;pointer-events:none}
+.wipe .tag{position:absolute;top:8px;padding:3px 8px;background:rgba(0,0,0,.7);border-radius:4px;font-weight:600;pointer-events:none}
+#sum{color:#ccc}#none{padding:40px;color:#aaa}
+</style></head><body><div class="wrap">
+<h1>Benchmark itr2_20261018_222100</h1>
+<p>foveated: PLAIN edges, window 50 %, half-size edges, edge AA temporal; output 100 % of the game's resolution setting; 72 Hz; dynamic resolution paused; settle 4000 ms (TAA 4000 ms) + until VRAM is stable, everything released before each checkpoint, measur</p>
+<p>Each checkpoint: a settle wait, then GPU time and VRAM measured with the view still, then a short burst of frames (a crop around the centre of the view) and a full-resolution screenshot. Deltas are against the game's TAA (first row). VRAM is the whole game process. Click a row to compare it with TAA. Data: <a href="itr2_20261018_222100_benchmark.csv">itr2_20261018_222100_benchmark.csv</a></p>
+<p class="models"><b>The models.</b> Every DLSS model runs in the same NVIDIA DLSS library (version 310.9.16, bundled with the mod); the letter picks the neural network.<br>
+<b>E</b>: the convolutional (CNN) model of DLSS 3, the last one before the transformers: the softest and the cheapest.<br>
+<b>J, K</b>: DLSS 4, first-generation transformer model: sharper, more expensive (J and K measure the same here; NVIDIA recommends K).<br>
+<b>L, M</b>: DLSS 4.5, second-generation transformer model: the sharpest and cleanest, the most expensive (best on RTX 40/50).<br>
+<b>FSR</b>: AMD FSR 3.1.5 (the version this NVIDIA card runs; it works on any DirectX 12 GPU). The mod would use FSR 4 on Radeon RX 9000 cards, which is untested as of yet.<br>
+<b>TAA</b>: the game's own anti-aliasing, without the mod.</p>
+<p class="shimmer"><b>Shimmer</b> is how much the image flickers from one frame to the next while your head is still. In VR you see it as crawling or sparkling on fine detail: foliage, wires, fences, thin edges, distant textures.</p>
+<div style="overflow-x:auto;max-width:100%"><table id="t"><thead><tr><th>#</th><th>Setting</th><th>Render per eye</th><th>GPU ms</th><th>vs TAA</th><th>GPU p90</th>
+<th>VRAM MB</th><th>vs TAA</th>
+<th>Shimmer</th><th>vs TAA</th></tr></thead><tbody></tbody></table></div>
+<h2>Compare</h2>
+<div class="bar">Left of the line: <select id="sl"></select> Right of the line: <select id="sr"></select>
+<button id="sw" title="X">Swap</button>
+<button data-m="f">Footage</button><button data-m="h" class="on">Shimmer map</button><button data-m="s">Screenshot</button>
+<button id="pp">Pause</button><button data-s="1" class="on">Real speed</button><button data-s="0.5">1/2</button>
+<button data-s="0.25">1/4</button><button data-s="0.1">1/10</button><button id="zm">Zoom 2x</button><span id="fr"></span></div>
+<div id="sum"></div>
+<div class="wipe" id="wp"><div class="layer" id="lr"></div><div class="layer" id="ll"></div><div class="line" id="ln"></div>
+<div class="tag" id="tl" style="left:8px"></div><div class="tag" id="tr" style="right:8px"></div></div>
+<div id="none" style="display:none">No footage for this pair (the burst failed or was turned off).</div>
+<p>The line sweeps by itself; move the mouse over the picture to hold it there. Space: pause &middot; Left/Right: one frame
+&middot; Z: zoom 2x &middot; X: swap sides &middot; 1/2/3: footage / shimmer map / screenshot. Shimmer map: bright = the pixel
+changes from frame to frame while the view is still (flicker, crawling edges). Footage and maps are lined up with the first
+burst; screenshots are shown as taken.</p>
+</div><script>
+var W=960,H=540,M=1,B=0;
+var P=[
+{vo:5855,vp:5855,st:4.0,l:'TAA',taa:1,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:6.176,g9:6.233,fm:13.887,fps:72.00,late:0.35,m0:0.000,m1:0.000,v:5855,b:1,n:32,dx:0,dy:0,bf:72.65,fl:2.294,f95:8.019,fo:0.3081,sh:'itr2_20261018_222100_00_TAA.png',fr:'itr2_20261018_222100_00_TAA_frames.png',ht:'itr2_20261018_222100_00_TAA_shimmer.png'},
+{vo:5855,vp:6155,st:4.0,l:'DLSS-E-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:3.678,g9:3.713,fm:13.891,fps:72.00,late:0.00,m0:0.326,m1:0.328,v:5726,b:1,n:32,dx:1,dy:0,bf:72.63,fl:2.346,f95:7.292,fo:0.3951,sh:'itr2_20261018_222100_01_DLSS-E-UltraPerformance.png',fr:'itr2_20261018_222100_01_DLSS-E-UltraPerformance_frames.png',ht:'itr2_20261018_222100_01_DLSS-E-UltraPerformance_shimmer.png'},
+{vo:5865,vp:6160,st:4.0,l:'DLSS-E-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.137,g9:4.181,fm:13.886,fps:71.98,late:0.00,m0:0.330,m1:0.333,v:5777,b:1,n:32,dx:0,dy:0,bf:72.65,fl:2.186,f95:6.670,fo:0.3846,sh:'itr2_20261018_222100_02_DLSS-E-Performance.png',fr:'itr2_20261018_222100_02_DLSS-E-Performance_frames.png',ht:'itr2_20261018_222100_02_DLSS-E-Performance_shimmer.png'},
+{vo:5865,vp:6239,st:4.0,l:'DLSS-E-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:4.985,g9:5.037,fm:13.896,fps:68.54,late:0.37,m0:0.396,m1:0.404,v:5840,b:1,n:32,dx:0,dy:0,bf:72.57,fl:2.025,f95:6.102,fo:0.3543,sh:'itr2_20261018_222100_03_DLSS-E-Quality.png',fr:'itr2_20261018_222100_03_DLSS-E-Quality_frames.png',ht:'itr2_20261018_222100_03_DLSS-E-Quality_shimmer.png'},
+{vo:5867,vp:6367,st:4.0,l:'DLSS-E-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:7.111,g9:7.182,fm:13.890,fps:72.00,late:0.00,m0:0.556,m1:0.564,v:5985,b:1,n:32,dx:0,dy:0,bf:72.60,fl:1.898,f95:5.818,fo:0.3117,sh:'itr2_20261018_222100_04_DLSS-E-DLAA.png',fr:'itr2_20261018_222100_04_DLSS-E-DLAA_frames.png',ht:'itr2_20261018_222100_04_DLSS-E-DLAA_shimmer.png'},
+{vo:5867,vp:6195,st:4.0,l:'DLSS-J-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:4.133,g9:4.171,fm:13.891,fps:71.99,late:0.00,m0:0.549,m1:0.551,v:5765,b:1,n:32,dx:1,dy:0,bf:72.69,fl:1.418,f95:3.706,fo:0.1973,sh:'itr2_20261018_222100_05_DLSS-J-UltraPerformance.png',fr:'itr2_20261018_222100_05_DLSS-J-UltraPerformance_frames.png',ht:'itr2_20261018_222100_05_DLSS-J-UltraPerformance_shimmer.png'},
+{vo:5882,vp:6218,st:4.0,l:'DLSS-J-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.670,g9:4.710,fm:13.891,fps:71.99,late:0.00,m0:0.588,m1:0.594,v:5819,b:1,n:32,dx:0,dy:0,bf:72.66,fl:1.489,f95:4.081,fo:0.2180,sh:'itr2_20261018_222100_06_DLSS-J-Performance.png',fr:'itr2_20261018_222100_06_DLSS-J-Performance_frames.png',ht:'itr2_20261018_222100_06_DLSS-J-Performance_shimmer.png'},
+{vo:5882,vp:6278,st:4.0,l:'DLSS-J-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:5.488,g9:5.539,fm:13.890,fps:71.99,late:0.00,m0:0.643,m1:0.650,v:5879,b:1,n:32,dx:0,dy:0,bf:72.56,fl:1.382,f95:3.601,fo:0.1921,sh:'itr2_20261018_222100_07_DLSS-J-Quality.png',fr:'itr2_20261018_222100_07_DLSS-J-Quality_frames.png',ht:'itr2_20261018_222100_07_DLSS-J-Quality_shimmer.png'},
+{vo:5882,vp:6406,st:4.0,l:'DLSS-J-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:7.603,g9:7.650,fm:13.889,fps:71.99,late:0.00,m0:0.801,m1:0.810,v:6024,b:1,n:32,dx:0,dy:0,bf:72.62,fl:1.237,f95:3.016,fo:0.1468,sh:'itr2_20261018_222100_08_DLSS-J-DLAA.png',fr:'itr2_20261018_222100_08_DLSS-J-DLAA_frames.png',ht:'itr2_20261018_222100_08_DLSS-J-DLAA_shimmer.png'},
+{vo:5882,vp:6166,st:4.0,l:'DLSS-K-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:4.072,g9:4.168,fm:13.888,fps:71.99,late:0.00,m0:0.549,m1:0.553,v:5765,b:1,n:32,dx:1,dy:0,bf:72.68,fl:1.351,f95:3.444,fo:0.1760,sh:'itr2_20261018_222100_09_DLSS-K-UltraPerformance.png',fr:'itr2_20261018_222100_09_DLSS-K-UltraPerformance_frames.png',ht:'itr2_20261018_222100_09_DLSS-K-UltraPerformance_shimmer.png'},
+{vo:5882,vp:6200,st:4.0,l:'DLSS-K-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.661,g9:4.734,fm:13.888,fps:72.00,late:0.00,m0:0.589,m1:0.593,v:5818,b:1,n:32,dx:0,dy:0,bf:72.55,fl:1.479,f95:4.035,fo:0.2123,sh:'itr2_20261018_222100_10_DLSS-K-Performance.png',fr:'itr2_20261018_222100_10_DLSS-K-Performance_frames.png',ht:'itr2_20261018_222100_10_DLSS-K-Performance_shimmer.png'},
+{vo:5882,vp:6262,st:4.0,l:'DLSS-K-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:5.443,g9:5.535,fm:13.894,fps:72.00,late:0.70,m0:0.643,m1:0.648,v:5879,b:1,n:32,dx:0,dy:0,bf:72.56,fl:1.384,f95:3.584,fo:0.1923,sh:'itr2_20261018_222100_11_DLSS-K-Quality.png',fr:'itr2_20261018_222100_11_DLSS-K-Quality_frames.png',ht:'itr2_20261018_222100_11_DLSS-K-Quality_shimmer.png'},
+{vo:5882,vp:6406,st:4.0,l:'DLSS-K-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:7.620,g9:7.659,fm:13.896,fps:72.00,late:0.00,m0:0.800,m1:0.808,v:6024,b:1,n:32,dx:0,dy:0,bf:72.70,fl:1.242,f95:3.014,fo:0.1456,sh:'itr2_20261018_222100_12_DLSS-K-DLAA.png',fr:'itr2_20261018_222100_12_DLSS-K-DLAA_frames.png',ht:'itr2_20261018_222100_12_DLSS-K-DLAA_shimmer.png'},
+{vo:5882,vp:6220,st:4.0,l:'DLSS-L-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:4.136,g9:4.179,fm:13.883,fps:71.99,late:0.00,m0:0.556,m1:0.555,v:5819,b:1,n:32,dx:1,dy:-1,bf:72.62,fl:1.090,f95:2.412,fo:0.0907,sh:'itr2_20261018_222100_13_DLSS-L-UltraPerformance.png',fr:'itr2_20261018_222100_13_DLSS-L-UltraPerformance_frames.png',ht:'itr2_20261018_222100_13_DLSS-L-UltraPerformance_shimmer.png'},
+{vo:5882,vp:6302,st:4.0,l:'DLSS-L-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.970,g9:5.012,fm:13.890,fps:71.99,late:0.00,m0:0.742,m1:0.745,v:5892,b:1,n:32,dx:0,dy:0,bf:72.72,fl:1.078,f95:2.403,fo:0.0909,sh:'itr2_20261018_222100_14_DLSS-L-Performance.png',fr:'itr2_20261018_222100_14_DLSS-L-Performance_frames.png',ht:'itr2_20261018_222100_14_DLSS-L-Performance_shimmer.png'},
+{vo:5882,vp:6437,st:4.0,l:'DLSS-L-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:6.330,g9:6.387,fm:13.894,fps:72.00,late:0.00,m0:1.061,m1:1.067,v:6038,b:1,n:32,dx:0,dy:0,bf:72.59,fl:1.123,f95:2.545,fo:0.1068,sh:'itr2_20261018_222100_15_DLSS-L-Quality.png',fr:'itr2_20261018_222100_15_DLSS-L-Quality_frames.png',ht:'itr2_20261018_222100_15_DLSS-L-Quality_shimmer.png'},
+{vo:5882,vp:6777,st:4.0,l:'DLSS-L-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:10.633,g9:10.757,fm:13.899,fps:71.98,late:0.00,m0:1.944,m1:1.951,v:6394,b:1,n:32,dx:0,dy:0,bf:72.81,fl:1.398,f95:3.385,fo:0.2027,sh:'itr2_20261018_222100_16_DLSS-L-DLAA.png',fr:'itr2_20261018_222100_16_DLSS-L-DLAA_frames.png',ht:'itr2_20261018_222100_16_DLSS-L-DLAA_shimmer.png'},
+{vo:5882,vp:6217,st:4.0,l:'DLSS-M-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:4.006,g9:4.034,fm:13.888,fps:71.98,late:0.00,m0:0.482,m1:0.488,v:5823,b:1,n:32,dx:1,dy:-1,bf:70.42,fl:1.260,f95:3.082,fo:0.1462,sh:'itr2_20261018_222100_17_DLSS-M-UltraPerformance.png',fr:'itr2_20261018_222100_17_DLSS-M-UltraPerformance_frames.png',ht:'itr2_20261018_222100_17_DLSS-M-UltraPerformance_shimmer.png'},
+{vo:5882,vp:6306,st:4.0,l:'DLSS-M-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.726,g9:4.762,fm:13.898,fps:71.99,late:0.00,m0:0.617,m1:0.624,v:5896,b:1,n:32,dx:0,dy:0,bf:72.63,fl:1.291,f95:3.244,fo:0.1576,sh:'itr2_20261018_222100_18_DLSS-M-Performance.png',fr:'itr2_20261018_222100_18_DLSS-M-Performance_frames.png',ht:'itr2_20261018_222100_18_DLSS-M-Performance_shimmer.png'},
+{vo:5882,vp:6444,st:4.0,l:'DLSS-M-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:5.917,g9:5.969,fm:13.892,fps:71.99,late:0.00,m0:0.860,m1:0.867,v:6045,b:1,n:32,dx:0,dy:0,bf:72.74,fl:1.264,f95:3.067,fo:0.1501,sh:'itr2_20261018_222100_19_DLSS-M-Quality.png',fr:'itr2_20261018_222100_19_DLSS-M-Quality_frames.png',ht:'itr2_20261018_222100_19_DLSS-M-Quality_shimmer.png'},
+{vo:5882,vp:6793,st:4.0,l:'DLSS-M-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:9.147,g9:9.202,fm:13.893,fps:71.97,late:0.00,m0:1.560,m1:1.564,v:6410,b:1,n:32,dx:0,dy:0,bf:72.63,fl:1.642,f95:4.400,fo:0.2618,sh:'itr2_20261018_222100_20_DLSS-M-DLAA.png',fr:'itr2_20261018_222100_20_DLSS-M-DLAA_frames.png',ht:'itr2_20261018_222100_20_DLSS-M-DLAA_shimmer.png'},
+{vo:5882,vp:6129,st:4.0,l:'FSR-UltraPerformance',taa:0,pct:33.4,rw:909,rh:994,ow:2720,oh:2976,g:3.533,g9:3.571,fm:13.890,fps:71.99,late:0.00,m0:0.252,m1:0.255,v:5743,b:1,n:32,dx:1,dy:-1,bf:72.62,fl:1.820,f95:5.580,fo:0.2676,sh:'itr2_20261018_222100_21_FSR-UltraPerformance.png',fr:'itr2_20261018_222100_21_FSR-UltraPerformance_frames.png',ht:'itr2_20261018_222100_21_FSR-UltraPerformance_shimmer.png'},
+{vo:5882,vp:6223,st:4.0,l:'FSR-Performance',taa:0,pct:50.0,rw:1360,rh:1488,ow:2720,oh:2976,g:4.092,g9:4.163,fm:13.890,fps:72.09,late:0.00,m0:0.301,m1:0.307,v:5817,b:1,n:32,dx:0,dy:-1,bf:72.86,fl:1.425,f95:3.835,fo:0.1864,sh:'itr2_20261018_222100_22_FSR-Performance.png',fr:'itr2_20261018_222100_22_FSR-Performance_frames.png',ht:'itr2_20261018_222100_22_FSR-Performance_shimmer.png'},
+{vo:5882,vp:6308,st:4.0,l:'FSR-Quality',taa:0,pct:66.7,rw:1815,rh:1985,ow:2720,oh:2976,g:4.920,g9:5.001,fm:13.892,fps:71.99,late:0.00,m0:0.382,m1:0.388,v:5910,b:1,n:32,dx:0,dy:0,bf:72.71,fl:1.538,f95:4.155,fo:0.2257,sh:'itr2_20261018_222100_23_FSR-Quality.png',fr:'itr2_20261018_222100_23_FSR-Quality_frames.png',ht:'itr2_20261018_222100_23_FSR-Quality_shimmer.png'},
+{vo:5882,vp:6534,st:4.0,l:'FSR-DLAA',taa:0,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:7.222,g9:7.270,fm:13.892,fps:71.99,late:0.00,m0:0.612,m1:0.618,v:6148,b:1,n:32,dx:0,dy:0,bf:72.75,fl:1.753,f95:5.020,fo:0.2761,sh:'itr2_20261018_222100_24_FSR-DLAA.png',fr:'itr2_20261018_222100_24_FSR-DLAA_frames.png',ht:'itr2_20261018_222100_24_FSR-DLAA_shimmer.png'},
+{vo:5882,vp:5886,st:4.0,l:'TAA',taa:1,pct:100.0,rw:2720,rh:2976,ow:2720,oh:2976,g:6.188,g9:6.239,fm:13.889,fps:72.00,late:0.00,m0:0.000,m1:0.000,v:5882,b:1,n:32,dx:0,dy:0,bf:72.70,fl:2.195,f95:7.654,fo:0.2880,sh:'itr2_20261018_222100_25_TAA.png',fr:'itr2_20261018_222100_25_TAA_frames.png',ht:'itr2_20261018_222100_25_TAA_shimmer.png'}
+];
+function $(i){return document.getElementById(i);}
+var tb=document.querySelector('#t tbody'),sl=$('sl'),sr=$('sr'),wp=$('wp'),lr=$('lr'),ll=$('ll'),ln=$('ln'),tl=$('tl'),tr=$('tr');
+var mode='h',k=0,speed=1,zoom=1,run=true,last=0,acc=0,wt=0,hold=-1,scale=1,shots={};
+var R=B>=0?P[B]:null;
+function f(v,d){return v.toFixed(d);}
+function delta(v,ref,d,unit){if(ref==null)return '';var x=v-ref;var c=Math.abs(x)<Math.pow(10,-d)/2?'':(x>0?'up':'dn');return '<span class="'+c+'">'+(x>0?'+':'')+f(x,d)+(unit||'')+'</span>';}
+function pctd(v,ref){if(!ref||ref<=0)return '';var x=(v/ref-1)*100;return '<span class="'+(x>0.5?'up':x<-0.5?'dn':'')+'">'+(x>0?'+':'')+f(x,0)+' %</span>';}
+P.forEach(function(p,i){
+ var tr=document.createElement('tr');if(p.taa)tr.className='taa';tr.dataset.i=i;
+ var rs=p.taa?(p.ow?p.ow+'x'+p.oh+' (native)':'native'):(p.rw+'x'+p.rh+' ('+f(p.pct,1)+' %)');
+ tr.innerHTML='<td>'+i+'</td><td>'+p.l+'</td><td>'+rs+'</td><td>'+f(p.g,2)+'</td><td>'+(R&&i!=B?delta(p.g,R.g,2,' ms'):'')+'</td><td>'+f(p.g9,2)+
+  '</td><td>'+f(p.v,0)+'</td><td>'+(R&&i!=B?delta(p.v,R.v,0,' MB'):'')+
+  '</td><td>'+(p.b?f(p.fl,2):'')+'</td><td>'+(R&&i!=B&&p.b&&R.b?pctd(p.fl,R.fl):'')+
+  '</td>';
+ tr.onclick=function(){if(B>=0)sl.value=B;sr.value=i;changed();};
+ tb.appendChild(tr);
+ [sl,sr].forEach(function(s){var o=document.createElement('option');o.value=i;o.textContent=i+': '+p.l;s.appendChild(o);});
+});
+var md=P.findIndex(function(p){return p.l=='DLSS-M-DLAA';});if(md>=0&&B>=0){sl.value=md;sr.value=B;}else{sl.value=B>=0?B:0;var first=P.findIndex(function(p,i){return !p.taa;});sr.value=first>=0?first:(P.length>1?1:0);}
+function L(){return P[+sl.value];}function Rt(){return P[+sr.value];}
+function loadShot(p,cb){if(!p.sh){cb(null);return;}if(shots[p.sh]){cb(shots[p.sh]);return;}var im=new Image();im.onload=function(){shots[p.sh]=im;cb(im);};im.onerror=function(){cb(null);};im.src=p.sh;}
+function view(){var a=L(),b=Rt();
+ if(mode=='s'){var im=shots[a.sh]||shots[b.sh];return im?{w:im.naturalWidth,h:im.naturalHeight}:null;}
+ if(!a.b||!b.b)return null;return {w:W-2*M,h:H-2*M};}
+function layout(){var v=view();
+ $('none').textContent=mode=='s'?'No screenshot for this pair (it failed or was turned off).':'No footage for this pair (the burst failed or was turned off).';
+ $('none').style.display=v?'none':'block';wp.style.display=v?'block':'none';if(!v)return;
+ var avail=Math.max(200,document.body.clientWidth-40),availH=Math.max(200,window.innerHeight-160);
+ scale=Math.min(1,avail/v.w,mode=='s'?availH/v.h:1)*zoom;
+ wp.style.width=(v.w*scale)+'px';wp.style.height=(v.h*scale)+'px';
+ [[ll,L()],[lr,Rt()]].forEach(function(x){var e=x[0],p=x[1];e.style.imageRendering=zoom>1?'pixelated':'auto';
+  if(mode=='s'){e.style.backgroundImage=p.sh?'url('+p.sh+')':'none';e.style.backgroundSize=(v.w*scale)+'px '+(v.h*scale)+'px';}
+  else if(mode=='h'){e.style.backgroundImage='url('+p.ht+')';e.style.backgroundSize=(W*scale)+'px '+(H*scale)+'px';}
+  else{e.style.backgroundImage='url('+p.fr+')';e.style.backgroundSize=(W*scale)+'px '+(H*p.n*scale)+'px';}});
+ tl.textContent=L().l;tr.textContent=Rt().l;draw();}
+function draw(){if(wp.style.display=='none')return;
+ [[ll,L()],[lr,Rt()]].forEach(function(x){var e=x[0],p=x[1];
+  if(mode=='s')e.style.backgroundPosition='0 0';
+  else{var kk=mode=='f'?(k%p.n):0;e.style.backgroundPosition=(-(M+p.dx)*scale)+'px '+(-(M+p.dy+kk*H)*scale)+'px';}});
+ var cyc=4.5,t=wt%cyc,pos=t<0.5?0:t<3.5?(t-0.5)/3:1,q=hold>=0?hold:pos;
+ ll.style.clipPath='inset(0 '+((1-q)*100)+'% 0 0)';ln.style.left=(q*100)+'%';
+ $('fr').textContent=mode=='f'?('frame '+(k%L().n+1)+' / '+L().n):'';}
+function summary(){var a=L(),b=Rt();
+ $('sum').innerHTML='Right (<b>'+b.l+'</b>) compared with left (<b>'+a.l+'</b>): GPU '+f(b.g,2)+' ms ('+delta(b.g,a.g,2,' ms')+'), VRAM '+f(b.v,0)+
+  ' MB ('+delta(b.v,a.v,0,' MB')+')'+(a.b&&b.b?', shimmer '+f(b.fl,2)+' ('+pctd(b.fl,a.fl)+')':'');
+ document.querySelectorAll('#t tbody tr').forEach(function(r){r.classList.toggle('sel',+r.dataset.i==+sl.value||+r.dataset.i==+sr.value);});}
+function changed(){summary();if(mode=='s'){var n=0;[L(),Rt()].forEach(function(p){loadShot(p,function(){if(++n==2)layout();});});}else layout();}
+function fps(){var a=L(),b=Rt(),v=(a.bf+b.bf)/2;return v>1?v:72;}
+function tick(t){if(last&&run){var dt=t-last;acc+=dt*speed;wt+=dt/1000;var d=1000/fps();while(acc>=d){acc-=d;k++;}draw();}last=t;requestAnimationFrame(tick);}
+wp.onmousemove=function(e){var r=wp.getBoundingClientRect();hold=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));draw();};
+wp.onmouseleave=function(){hold=-1;};
+sl.onchange=changed;sr.onchange=changed;
+$('sw').onclick=function(){var x=sl.value;sl.value=sr.value;sr.value=x;changed();};
+function setMode(m){mode=m;document.querySelectorAll('button[data-m]').forEach(function(x){x.classList.toggle('on',x.dataset.m==m);});changed();}
+document.querySelectorAll('button[data-m]').forEach(function(b){b.onclick=function(){setMode(b.dataset.m);};});
+document.querySelectorAll('button[data-s]').forEach(function(b){b.onclick=function(){speed=+b.dataset.s;
+ document.querySelectorAll('button[data-s]').forEach(function(x){x.classList.toggle('on',x===b);});};});
+var pp=$('pp'),zm=$('zm');
+pp.onclick=function(){run=!run;pp.textContent=run?'Pause':'Play';};
+zm.onclick=function(){zoom=zoom>1?1:2;zm.classList.toggle('on',zoom>1);layout();};
+window.onkeydown=function(e){if(e.target.tagName=='SELECT')return;
+ if(e.key==' '){e.preventDefault();pp.onclick();}
+ else if(e.key=='ArrowRight'){run=false;pp.textContent='Play';k++;draw();}
+ else if(e.key=='ArrowLeft'){run=false;pp.textContent='Play';k=Math.max(0,k-1);draw();}
+ else if(e.key=='z'||e.key=='Z')zm.onclick();else if(e.key=='x'||e.key=='X')$('sw').onclick();
+ else if(e.key=='1')setMode('f');else if(e.key=='2')setMode('h');else if(e.key=='3')setMode('s');};
+window.onresize=layout;changed();requestAnimationFrame(tick);
+</script></body></html>
